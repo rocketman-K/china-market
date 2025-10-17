@@ -22,30 +22,14 @@
   </header>
 
   <main class="max-w-6xl mx-auto p-4 space-y-4">
+    <!-- 주요 지수/환율 -->
     <section class="card">
       <div class="text-lg font-semibold mb-2">주요 지수/환율 빠른 보기</div>
-      <div class="tv-wrap" style="height:60px;">
-        <div class="tradingview-widget-container">
-          <div class="tradingview-widget-container__widget"></div>
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-          {
-            "symbols": [
-              {"proName": "HSI:HSI", "title": "Hang Seng Index"},
-              {"proName": "HSI:HSTECH", "title": "Hang Seng TECH"},
-              {"proName": "SSE:000001", "title": "SSE Composite"},
-              {"proName": "FX_IDC:CNYKRW", "title": "CNY/KRW"}
-            ],
-            "showSymbolLogo": true,
-            "colorTheme": "dark",
-            "isTransparent": true,
-            "displayMode": "adaptive",
-            "locale": "kr"
-          }
-          </script>
-        </div>
-      </div>
+      <!-- 위젯을 동적으로 넣을 컨테이너 -->
+      <div id="tv-ticker" class="tv-wrap" style="height:60px;"></div>
     </section>
 
+    <!-- 리서치 & 시황 -->
     <section class="card">
       <div class="text-lg font-semibold mb-2">리서치 & 시황 바로가기</div>
       <div class="flex flex-wrap gap-2 text-sm">
@@ -57,6 +41,7 @@
       </div>
     </section>
 
+    <!-- 심리 · 포지셔닝 -->
     <section class="card">
       <div class="text-lg font-semibold mb-2">심리 · 포지셔닝</div>
       <div class="flex flex-wrap gap-2 text-sm">
@@ -66,47 +51,38 @@
       </div>
     </section>
 
+    <!-- 중국 테마 이미지 -->
     <section class="card">
       <img src="assets/china_bull.jpg" alt="중국 증시 랠리" class="w-full h-auto block rounded-xl" loading="lazy"/>
     </section>
 
+    <!-- 텔레그램 -->
     <section class="card">
       <div class="text-lg font-semibold mb-2">텔레그램 공식 채널 최신 메시지</div>
       <div id="tg-jkc"></div>
     </section>
 
+    <!-- 경제지표 캘린더 -->
     <section class="card">
       <div class="text-lg font-semibold mb-2">이번 주 경제지표 캘린더</div>
-      <div class="tv-wrap" style="height:420px;">
-        <div class="tradingview-widget-container">
-          <div class="tradingview-widget-container__widget"></div>
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
-          {
-            "colorTheme": "dark",
-            "isTransparent": true,
-            "width": "100%",
-            "height": "100%",
-            "locale": "kr",
-            "importanceFilter": "1",
-            "countryFilter": "us,cn"
-          }
-          </script>
-        </div>
-      </div>
+      <!-- 동적 컨테이너 -->
+      <div id="tv-events" class="tv-wrap" style="height:420px;"></div>
     </section>
 
     <footer class="py-6 text-center text-xs opacity-70">© 개인 투자 대시보드 · 자료: TradingView</footer>
   </main>
 
+  <!-- 테마 토글 -->
   <script>
     const btn=document.getElementById('themeToggle');
     const root=document.documentElement;
     function setTheme(m){if(m==='dark'){root.classList.add('dark');localStorage.setItem('theme','dark');}else{root.classList.remove('dark');localStorage.setItem('theme','light');}}
     const saved=localStorage.getItem('theme');
     if(saved){setTheme(saved);}else{setTheme(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');}
-    btn.addEventListener('click',()=>{setTheme(root.classList.contains('dark')?'light':'dark');});
+    btn.addEventListener('click',()=>{setTheme(root.classList.contains('dark')?'light':'dark'); renderTradingView();});
   </script>
 
+  <!-- 텔레그램 피드 (jkc123, 최신 4개) -->
   <script>
     const WORKER_BASE = "https://wo-de-telegram-proxy.snupil38kor.workers.dev";
     const FEEDS = [{ channel: "jkc123", title: "jkc123", mount: "tg-jkc" }];
@@ -159,8 +135,70 @@
         renderError({mount,title,channel});
       }
     }
-
     FEEDS.forEach(loadFeed);
+  </script>
+
+  <!-- TradingView 위젯: 테마에 맞춰 동적 생성 (라이트에서 가독성 개선) -->
+  <script>
+    function createWidget(containerId, src, config) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = "";                       // 기존 위젯 제거
+      const script = document.createElement("script");
+      script.type = "text/javascript";
+      script.src = src;
+      script.async = true;
+      // TradingView는 스크립트 태그의 텍스트로 JSON을 받음
+      script.innerHTML = JSON.stringify(config);
+      const wrap = document.createElement("div");
+      wrap.className = "tradingview-widget-container";
+      const inner = document.createElement("div");
+      inner.className = "tradingview-widget-container__widget";
+      wrap.appendChild(inner);
+      wrap.appendChild(script);
+      el.appendChild(wrap);
+    }
+
+    function renderTradingView() {
+      const isDark = document.documentElement.classList.contains("dark");
+      const theme = isDark ? "dark" : "light";
+
+      // 1) 티커 테이프 (투명 해제 + 테마 적용)
+      createWidget(
+        "tv-ticker",
+        "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js",
+        {
+          symbols: [
+            { proName: "HSI:HSI", title: "Hang Seng Index" },
+            { proName: "HSI:HSTECH", title: "Hang Seng TECH" },
+            { proName: "SSE:000001", title: "SSE Composite" },
+            { proName: "FX_IDC:CNYKRW", title: "CNY/KRW" }
+          ],
+          showSymbolLogo: true,
+          colorTheme: theme,
+          isTransparent: false,
+          displayMode: "adaptive",
+          locale: "kr"
+        }
+      );
+
+      // 2) 경제지표 캘린더 (투명 해제 + 테마 적용)
+      createWidget(
+        "tv-events",
+        "https://s3.tradingview.com/external-embedding/embed-widget-events.js",
+        {
+          colorTheme: theme,
+          isTransparent: false,
+          width: "100%",
+          height: "100%",
+          locale: "kr",
+          importanceFilter: "1",
+          countryFilter: "us,cn"
+        }
+      );
+    }
+
+    // 최초 렌더
+    renderTradingView();
   </script>
 </body>
 </html>
